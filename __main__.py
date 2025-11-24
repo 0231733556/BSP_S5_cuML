@@ -57,8 +57,8 @@ def run_project(n_samples=100_000, n_features=20, n_informative=15, n_classes=2,
     kmc = ClusteringWrapper()
     resultClassifier=train_model(model=rfc,X=classifierSplit[0],y=classifierSplit[2],X_val=classifierSplit[1],y_val=classifierSplit[3],timing=True,trials=5)
     resultClustering=train_model(kmc,X=clusteringXY[0],timing=True,trials=5)
-    row_classifier=record_trial(n_samples=n_samples, n_features=n_features, sparsity=sparsity, accelerator="CPU", results=resultClassifier, algorithm=CLASSIFIER)
-    row_clustering=record_trial(n_samples=n_samples, n_features=n_features, sparsity=sparsity, accelerator="CPU", results=resultClustering, algorithm=CLUSTER)
+    row_classifier=record_trial(n_samples=n_samples, n_features=n_features, sparsity=sparsity, accelerator="GPU1", results=resultClassifier, algorithm=CLASSIFIER)
+    row_clustering=record_trial(n_samples=n_samples, n_features=n_features, sparsity=sparsity, accelerator="GPU1", results=resultClustering, algorithm=CLUSTER)
     write_results_to_parquet(row_classifier, "." + os.sep + "BSP_S5_cuML" + os.sep + "data" +os.sep+"classifier_results.parquet")
     write_results_to_parquet(row_clustering, "." + os.sep + "BSP_S5_cuML" + os.sep + "data" +os.sep+"clustering_results.parquet")
     print("Classifier results:", resultClassifier)
@@ -67,8 +67,8 @@ def run_project(n_samples=100_000, n_features=20, n_informative=15, n_classes=2,
     
     
 def main () :
-    number_samples = [1_000,10_000]
-    n_features = [64,128,256,512,1024]
+    number_samples = [10_000]
+    n_features = [4096]
     sparsities = [0.0,0.25,0.5,0.75,0.9]
     
     for n_samples in number_samples:
