@@ -5,8 +5,8 @@ import logging as LOG
 import pandas as pd
 import os
 SEED = 42
-CLASSIFIER= "random_forest"
-CLUSTER= "kmeans"
+CLASSIFIER= "svc"
+CLUSTER= "dbscan"
 
 
 def write_results_to_parquet(results: dict, filename: str) -> None:
@@ -67,8 +67,8 @@ def run_project(n_samples=100_000, n_features=20, n_informative=15, n_classes=2,
     
     
 def main () :
-    number_samples = [10_000]
-    n_features = [4096]
+    number_samples = [1000,10_000]
+    n_features = [64,128,256,512,1024,2048,4096]
     sparsities = [0.0,0.25,0.5,0.75,0.9]
     
     for n_samples in number_samples:
