@@ -4,9 +4,13 @@ from sklearn.model_selection import train_test_split
 import logging as LOG
 import pandas as pd
 import os
+
+classifiers = ["svc", "random_forest","logistic"]
+clusterers = ["kmeans", "dbscan","agglomerative"]
+
 SEED = 42
-CLASSIFIER= "svc"
-CLUSTER= "dbscan"
+CLASSIFIER= classifiers[2]
+CLUSTER= clusterers[2]
 
 
 def write_results_to_parquet(results: dict, filename: str) -> None:
