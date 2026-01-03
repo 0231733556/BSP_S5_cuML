@@ -1,8 +1,16 @@
+import string
 from sklearn.datasets import make_classification, make_blobs
+from sklearn.feature_extraction.text import TfidfVectorizer
 from scipy.sparse import random as sparse_random
 import numpy as np
 import pandas as pd
+import kagglehub
 import os
+import shutil
+import nltk
+from nltk.tokenize import word_tokenize
+from nltk.corpus import stopwords
+
 
 def generate_classification_data(
     n_samples=100_000,
@@ -54,7 +62,9 @@ def generate_clustering_data(
     n_features=50,
     centers=10,
     cluster_std=1.0,
+    sparsity=0.0,
     random_state=42,
+    
 ):
     """
     Generate synthetic clustering data.
@@ -85,6 +95,10 @@ def generate_clustering_data(
         random_state=random_state,
         return_centers=False,
     )
+    if sparsity > 0:
+        mask = np.random.rand(*X.shape) > sparsity
+        X = X * mask
+        
     return X, y
 
 def loadFromParquet(file_path: str = f".{os.sep}data{os.sep}",files : tuple[str,str]=("classifier_results.parquet","clustering_results.parquet")) -> tuple[pd.DataFrame, pd.DataFrame]:
@@ -115,3 +129,56 @@ def loadFromParquet(file_path: str = f".{os.sep}data{os.sep}",files : tuple[str,
     df_classifier,df_clustering = dataframes
      
     return df_classifier.reset_index(drop=True), df_clustering.reset_index(drop=True)
+
+def get_dataset():
+    df = pd.read_csv(f".{os.sep}Datasets{os.sep}spam_ham_dataset.csv")
+    df = _pre_process_dataset(df)
+    return df
+
+def _pre_process_dataset(df: pd.DataFrame) -> pd.DataFrame:
+    import nltk
+    import os
+    
+    # Resolve path RELATIVE to THIS file (datagen.py)
+    BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+    NLTK_DIR = os.path.join(BASE_DIR, "nltk_data")
+
+    # Ensure the folder exists
+    os.makedirs(NLTK_DIR, exist_ok=True)
+
+    # Make NLTK use this folder
+    nltk.data.path.insert(0, NLTK_DIR)
+
+
+    # Download resources into this relative folder
+    nltk.download("punkt", download_dir=NLTK_DIR)
+    nltk.download("stopwords", download_dir=NLTK_DIR)
+    
+    print("NLTK DIR:", NLTK_DIR)
+    print("NLTK PATH:", nltk.data.path)
+
+    print("RESULT punkt:", nltk.download("punkt", download_dir=NLTK_DIR))
+    print("RESULT stopwords:", nltk.download("stopwords", download_dir=NLTK_DIR))
+
+
+    #lowercasing
+    df["text"] = df["text"].apply(lambda text : text.lower())
+    #tokenizing
+    df["tokens"]=df["text"].apply(lambda text : word_tokenize(text))
+    #punctuation removal
+    df["tokens"]=df["tokens"].apply(lambda tokens :[word for word in tokens if word not in string.punctuation])
+    #stop word removal
+    stop_words=set(stopwords.words('english'))
+    df["tokens"]=df["tokens"].apply(lambda tokens : [word for word in tokens if word not in stop_words])
+
+    #Converting from tokens back to strings
+    df["text_processed"]=df["tokens"].apply(lambda tokens : " ".join(tokens))
+    
+        #initialisation of vectorizer
+    tfidf_vectorizer = TfidfVectorizer()
+    #fitting and transforming the 'text_processed' column
+    tfidf_features = tfidf_vectorizer.fit_transform(df['text_processed'])
+
+    #Converting the TF-IDF features to a dataframe
+    tfidf_df = pd.DataFrame(tfidf_features.toarray(), columns=tfidf_vectorizer.get_feature_names_out())
+    return tfidf_df

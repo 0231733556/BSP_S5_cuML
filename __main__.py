@@ -36,7 +36,7 @@ def run_project(n_samples=100_000, n_features=20, n_informative=15, n_classes=2,
     set_log_level(LOG.DEBUG)
     classifierXY = generate_classification_data(n_samples=n_samples, n_features=n_features, n_informative=n_informative, n_classes=n_classes,sparsity=sparsity, random_state=random_state)
     classifierSplit = train_test_split(classifierXY[0], classifierXY[1], test_size=test_size, random_state=random_state)
-    clusteringXY = generate_clustering_data(n_samples=n_samples, n_features=n_features, centers=centers, cluster_std=cluster_std, random_state=random_state)
+    clusteringXY = generate_clustering_data(n_samples=n_samples, n_features=n_features, centers=centers, cluster_std=cluster_std,sparsity=sparsity, random_state=random_state)
 
     setting={
         "classifier": {
