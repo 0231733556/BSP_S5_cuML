@@ -12,7 +12,6 @@ SEED = 42
 CLASSIFIER= classifiers[2]
 CLUSTER= clusterers[2]
 
-
 def write_results_to_parquet(results: dict, filename: str) -> None:
     df = pd.DataFrame([results])
     if os.path.exists(filename):
