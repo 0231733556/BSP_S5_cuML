@@ -390,7 +390,7 @@ def train_model(
                     val_scores.append(None)
     if energy_tracking:
             tracker.stop()
-            avg_energy_consumed = (tracker.final_emissions_data.energy_consumed * 1000)/trials # converts kWh to Wh, which is more intuitive for small runs
+            avg_energy_consumed = (tracker._total_energy.kWh * 1000)/trials # converts kWh to Wh, which is more intuitive for small runs
             
     result = {
         "times": times,

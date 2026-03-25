@@ -1,15 +1,12 @@
 from BSP_S6_cuML.models import ClassifierWrapper, ClusteringWrapper, train_model,set_defaults,set_log_level # type: ignore
 from BSP_S6_cuML.datagen import generate_classification_data, generate_clustering_data # type: ignore
 from sklearn.model_selection import train_test_split
-from constants import *
+from BSP_S6_cuML.constants import *
 import logging as LOG
 import pandas as pd
 import os
 
-ACCELERATOR = ACCELERATORS[0]
-CLASSIFIER = CLASSIFIERS[0]
-CLUSTER = CLUSTERERS[0]
-
+ACCELERATOR = ACCELERATORS[1]
 def write_results_to_parquet(results: dict, filename: str) -> None:
     df = pd.DataFrame([results])
     if os.path.exists(filename):
@@ -30,7 +27,7 @@ def record_trial(n_samples:int, n_features:int, sparsity:float, accelerator:str,
     }
     return row
 
-def run_project(n_samples=100_000, n_features=20, n_informative=15, n_classes=2,sparsity=0.0,centers=10,cluster_std=1.0,test_size=0.2, random_state=42):
+def run_project(clusterer,classifier,n_samples=100_000, n_features=20, n_informative=15, n_classes=2,sparsity=0.0,centers=10,cluster_std=1.0,test_size=0.2, random_state=SEED):
     set_log_level(LOG.DEBUG)
     classifierXY = generate_classification_data(n_samples=n_samples, n_features=n_features, n_informative=n_informative, n_classes=n_classes,sparsity=sparsity, random_state=random_state)
     classifierSplit = train_test_split(classifierXY[0], classifierXY[1], test_size=test_size, random_state=random_state)
@@ -38,7 +35,7 @@ def run_project(n_samples=100_000, n_features=20, n_informative=15, n_classes=2,
 
     setting={
         "classifier": {
-            "estimator_name": CLASSIFIER,
+            "estimator_name": classifier,
             "use_scaler": True,
             "random_state": SEED,
             "n_estimators": 100,
@@ -46,7 +43,7 @@ def run_project(n_samples=100_000, n_features=20, n_informative=15, n_classes=2,
             "probability": True,
         },
         "clustering": {
-            "algorithm_name": CLUSTER,
+            "algorithm_name": clusterer,
             "n_clusters": 3,
             "use_scaler": True,
             "random_state": SEED,
@@ -59,8 +56,8 @@ def run_project(n_samples=100_000, n_features=20, n_informative=15, n_classes=2,
     kmc = ClusteringWrapper()
     resultClassifier=train_model(model=rfc,X=classifierSplit[0],y=classifierSplit[2],X_val=classifierSplit[1],y_val=classifierSplit[3],timing=True,trials=5,energy_tracking=True)
     resultClustering=train_model(kmc,X=clusteringXY[0],timing=True,trials=5,energy_tracking=True)
-    row_classifier=record_trial(n_samples=n_samples, n_features=n_features, sparsity=sparsity, accelerator=ACCELERATOR, results=resultClassifier, algorithm=CLASSIFIER)
-    row_clustering=record_trial(n_samples=n_samples, n_features=n_features, sparsity=sparsity, accelerator=ACCELERATOR, results=resultClustering, algorithm=CLUSTER)
+    row_classifier=record_trial(n_samples=n_samples, n_features=n_features, sparsity=sparsity, accelerator=ACCELERATOR, results=resultClassifier, algorithm=classifier)
+    row_clustering=record_trial(n_samples=n_samples, n_features=n_features, sparsity=sparsity, accelerator=ACCELERATOR, results=resultClustering, algorithm=clusterer)
     write_results_to_parquet(row_classifier, "." + os.sep + "BSP_S6_cuML" + os.sep + "data" +os.sep+"classifier_results.parquet")
     write_results_to_parquet(row_clustering, "." + os.sep + "BSP_S6_cuML" + os.sep + "data" +os.sep+"clustering_results.parquet")
     print("Classifier results:", resultClassifier)
@@ -76,7 +73,8 @@ def main () :
     for n_samples in number_samples:
         for n_feature in n_features:
             for sparsity in sparsities:
-                run_project(n_samples=n_samples, n_features=n_feature, n_informative=15, n_classes=2,sparsity=sparsity,centers=10,cluster_std=1.0,test_size=0.2, random_state=42)
+                for i in range(3): 
+                    run_project(classifier=CLASSIFIERS[i], clusterer=CLUSTERERS[i], n_samples=n_samples, n_features=n_feature, n_informative=15, n_classes=2, sparsity=sparsity, centers=10, cluster_std=1.0, test_size=0.2, random_state=42)
 
 
 
