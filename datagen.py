@@ -4,12 +4,9 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from scipy.sparse import random as sparse_random
 import numpy as np
 import pandas as pd
-import kagglehub
 import os
 import shutil
-import nltk
-from nltk.tokenize import word_tokenize
-from nltk.corpus import stopwords
+
 
 
 def generate_classification_data(

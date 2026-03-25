@@ -1,16 +1,14 @@
-from BSP_S5_cuML.models import ClassifierWrapper, ClusteringWrapper, train_model,set_defaults,set_log_level, use_accel # type: ignore
-from BSP_S5_cuML.datagen import generate_classification_data, generate_clustering_data # type: ignore
+from BSP_S6_cuML.models import ClassifierWrapper, ClusteringWrapper, train_model,set_defaults,set_log_level # type: ignore
+from BSP_S6_cuML.datagen import generate_classification_data, generate_clustering_data # type: ignore
 from sklearn.model_selection import train_test_split
+from constants import *
 import logging as LOG
 import pandas as pd
 import os
 
-classifiers = ["svc", "random_forest","logistic"]
-clusterers = ["kmeans", "dbscan","agglomerative"]
-
-SEED = 42
-CLASSIFIER= classifiers[2]
-CLUSTER= clusterers[2]
+ACCELERATOR = ACCELERATORS[0]
+CLASSIFIER = CLASSIFIERS[0]
+CLUSTER = CLUSTERERS[0]
 
 def write_results_to_parquet(results: dict, filename: str) -> None:
     df = pd.DataFrame([results])
@@ -27,6 +25,7 @@ def record_trial(n_samples:int, n_features:int, sparsity:float, accelerator:str,
         "accelerator": accelerator,
         "median_time" : results.get("median", None),
         "mean_time" : results.get("mean", None),
+        "avg_energy_wh": results.get("energy_consumed", None),
         "algorithm" : algorithm,
     }
     return row
@@ -58,12 +57,12 @@ def run_project(n_samples=100_000, n_features=20, n_informative=15, n_classes=2,
 
     rfc = ClassifierWrapper()
     kmc = ClusteringWrapper()
-    resultClassifier=train_model(model=rfc,X=classifierSplit[0],y=classifierSplit[2],X_val=classifierSplit[1],y_val=classifierSplit[3],timing=True,trials=5)
-    resultClustering=train_model(kmc,X=clusteringXY[0],timing=True,trials=5)
-    row_classifier=record_trial(n_samples=n_samples, n_features=n_features, sparsity=sparsity, accelerator="GPU1", results=resultClassifier, algorithm=CLASSIFIER)
-    row_clustering=record_trial(n_samples=n_samples, n_features=n_features, sparsity=sparsity, accelerator="GPU1", results=resultClustering, algorithm=CLUSTER)
-    write_results_to_parquet(row_classifier, "." + os.sep + "BSP_S5_cuML" + os.sep + "data" +os.sep+"classifier_results.parquet")
-    write_results_to_parquet(row_clustering, "." + os.sep + "BSP_S5_cuML" + os.sep + "data" +os.sep+"clustering_results.parquet")
+    resultClassifier=train_model(model=rfc,X=classifierSplit[0],y=classifierSplit[2],X_val=classifierSplit[1],y_val=classifierSplit[3],timing=True,trials=5,energy_tracking=True)
+    resultClustering=train_model(kmc,X=clusteringXY[0],timing=True,trials=5,energy_tracking=True)
+    row_classifier=record_trial(n_samples=n_samples, n_features=n_features, sparsity=sparsity, accelerator=ACCELERATOR, results=resultClassifier, algorithm=CLASSIFIER)
+    row_clustering=record_trial(n_samples=n_samples, n_features=n_features, sparsity=sparsity, accelerator=ACCELERATOR, results=resultClustering, algorithm=CLUSTER)
+    write_results_to_parquet(row_classifier, "." + os.sep + "BSP_S6_cuML" + os.sep + "data" +os.sep+"classifier_results.parquet")
+    write_results_to_parquet(row_clustering, "." + os.sep + "BSP_S6_cuML" + os.sep + "data" +os.sep+"clustering_results.parquet")
     print("Classifier results:", resultClassifier)
     print("Clustering results:", resultClustering)
     

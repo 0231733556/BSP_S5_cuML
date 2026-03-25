@@ -25,6 +25,7 @@ import numpy as np
 import pandas as pd
 import time
 import statistics
+from codecarbon import OfflineEmissionsTracker
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 from sklearn.ensemble import RandomForestClassifier
@@ -44,7 +45,7 @@ def set_log_level(level: int) -> None:
     """Set the logging level for this module."""
     LOG.setLevel(level)
 
-def use_accel(val: bool):
+def __use_accel(val: bool):
     if val:
         try:
             from IPython.core.getipython import get_ipython
@@ -301,6 +302,7 @@ def train_model(
     metric=None,
     random_state: Optional[int] = None,
     timing: bool = False,
+    energy_tracking: bool = False,
 ):
     """Generic training helper.
 
@@ -315,9 +317,12 @@ def train_model(
     - warmups: number of warmup runs before timing.
     - metric: optional callable(y_true, y_pred) to compute a validation score.
     - random_state: optional seed to set on the model if it has that attribute.
-
+    - energy_tracking: optional boolean to enable energy consumption tracking.
     Returns a dict with keys: 'times' (list), 'median', 'mean', 'std', and
     optionally 'val_score_median' and 'val_scores'.
+    
+    For energy tracking, we take the average of the consumed energy to ammoritize any startup overhead,
+    and convert to kWh for easier interpretation.
     """
 
     def _set_seed(m, seed):
@@ -347,10 +352,18 @@ def train_model(
             warmup_total += (t1 - t0)
             t0 = t1
         LOG.debug(f"Warmup time over {warmups} runs: {warmup_total:.4f} sec")
+        
+    
+    if energy_tracking:
+        tracker = OfflineEmissionsTracker(country_iso_code="LUX",log_level="error",measure_power_secs=1)
+        tracker.start()
+
+
     for _ in range(trials):
         _set_seed(model, random_state)
         if timing:
             t1 = time.perf_counter()
+        
         if y is None:
             model.fit(X)
         else:
@@ -358,6 +371,7 @@ def train_model(
         if timing:
             t2 = time.perf_counter()
             times.append(t2 - t1)
+        
         if X_val is not None and y_val is not None and metric is not None:
             preds = None
             try:
@@ -374,12 +388,17 @@ def train_model(
                     val_scores.append(metric(y_val, preds))
                 except Exception:
                     val_scores.append(None)
-
+    if energy_tracking:
+            tracker.stop()
+            avg_energy_consumed = (tracker.final_emissions_data.energy_consumed * 1000)/trials # converts kWh to Wh, which is more intuitive for small runs
+            
     result = {
         "times": times,
         "median": statistics.median(times) if times else None,
         "mean": statistics.mean(times) if times else None,
         "std": statistics.pstdev(times) if len(times) > 1 else 0.0,
+        "energy_consumed": avg_energy_consumed if energy_tracking else None,
+        
     }
     if val_scores:
         filtered = [s for s in val_scores if s is not None]
