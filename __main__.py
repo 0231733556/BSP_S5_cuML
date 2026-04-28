@@ -6,7 +6,7 @@ import logging as LOG
 import pandas as pd
 import os
 
-ACCELERATOR = ACCELERATORS[1]
+ACCELERATOR = ACCELERATORS[3]
 def write_results_to_parquet(results: dict, filename: str) -> None:
     df = pd.DataFrame([results])
     if os.path.exists(filename):
