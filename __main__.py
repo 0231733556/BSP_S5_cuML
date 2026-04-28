@@ -50,7 +50,7 @@ def run_project(clusterer,classifier,n_samples=100_000, n_features=20, n_informa
             "algorithm_params": None,
         },
     }
-    set_defaults(setting)
+    set_defaults(classifier=setting["classifier"], clustering=setting["clustering"])
 
     rfc = ClassifierWrapper()
     kmc = ClusteringWrapper()

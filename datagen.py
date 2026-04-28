@@ -91,7 +91,7 @@ def generate_clustering_data(
         cluster_std=cluster_std,
         random_state=random_state,
         return_centers=False,
-    )
+    )[:2]
     if sparsity > 0:
         mask = np.random.rand(*X.shape) > sparsity
         X = X * mask
